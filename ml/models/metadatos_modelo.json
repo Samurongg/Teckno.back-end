@@ -1,0 +1,98 @@
+{
+    "model_name": "Random Forest",
+    "model_version": "v2.4.1",
+    "trained_at": "2026-08-19 23:39:39",
+    "total_samples": 5000,
+    "train_samples": 4000,
+    "test_samples": 1000,
+    "target_distribution": {
+        "ontime_0": 4125,
+        "delayed_1": 875
+    },
+    "features": {
+        "numerical": [
+            "distancia_km",
+            "tiempo_estimado_dias",
+            "tiempo_preparacion_horas",
+            "cantidad_productos",
+            "peso_kg"
+        ],
+        "categorical": [
+            "region",
+            "tipo_envio",
+            "prioridad",
+            "dia_semana",
+            "carga_logistica"
+        ]
+    },
+    "best_model_metrics": {
+        "accuracy": 0.954,
+        "precision": 0.8116,
+        "recall": 0.96,
+        "f1_score": 0.8796,
+        "roc_auc": 0.986,
+        "confusion_matrix": [
+            [
+                786,
+                39
+            ],
+            [
+                7,
+                168
+            ]
+        ]
+    },
+    "comparison": {
+        "Logistic Regression": {
+            "accuracy": 0.928,
+            "precision": 0.7229,
+            "recall": 0.9543,
+            "f1_score": 0.8227,
+            "roc_auc": 0.9862,
+            "confusion_matrix": [
+                [
+                    761,
+                    64
+                ],
+                [
+                    8,
+                    167
+                ]
+            ]
+        },
+        "Decision Tree": {
+            "accuracy": 0.929,
+            "precision": 0.7261,
+            "recall": 0.9543,
+            "f1_score": 0.8247,
+            "roc_auc": 0.9644,
+            "confusion_matrix": [
+                [
+                    762,
+                    63
+                ],
+                [
+                    8,
+                    167
+                ]
+            ]
+        },
+        "Random Forest": {
+            "accuracy": 0.954,
+            "precision": 0.8116,
+            "recall": 0.96,
+            "f1_score": 0.8796,
+            "roc_auc": 0.986,
+            "confusion_matrix": [
+                [
+                    786,
+                    39
+                ],
+                [
+                    7,
+                    168
+                ]
+            ]
+        }
+    }
+}
