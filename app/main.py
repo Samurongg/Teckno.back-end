@@ -15,13 +15,8 @@ app = FastAPI(
 # Configuración de CORS para desarrollo con React / Vite
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080"
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Permite cualquier puerto local sin bloqueos
+    allow_credentials=False, # Apagamos las credenciales estrictas
     allow_methods=["*"],
     allow_headers=["*"],
 )

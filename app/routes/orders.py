@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/orders", tags=["Orders"])
 @router.get("", response_model=OrderPaginatedResponse)
 def listar_pedidos(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     search: Optional[str] = Query(None),
     region: Optional[str] = Query(None),
     tipo_envio: Optional[str] = Query(None),
