@@ -80,7 +80,50 @@ class MLService:
         if not os.path.exists(self.metadata_path):
             raise FileNotFoundError(f"Metadatos no encontrados en: {self.metadata_path}")
         with open(self.metadata_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            metadatos = json.load(f)
+        metadatos["feature_importance"] = self._obtener_importancia_variables()
+        return metadatos
+
+    def _obtener_importancia_variables(self) -> list[dict]:
+        """Agrupa la importancia del clasificador por variable original."""
+        if self.pipeline is None:
+            return []
+        preprocessor = self.pipeline.named_steps.get("preprocessor")
+        classifier = self.pipeline.named_steps.get("classifier")
+        if preprocessor is None or not hasattr(classifier, "feature_importances_"):
+            return []
+
+        feature_names = preprocessor.get_feature_names_out()
+        importances = classifier.feature_importances_
+        variables = [
+            "distancia_km", "tiempo_estimado_dias", "tiempo_preparacion_horas",
+            "cantidad_productos", "peso_kg", "region", "tipo_envio", "prioridad",
+            "dia_semana", "carga_logistica",
+        ]
+        acumuladas = {variable: 0.0 for variable in variables}
+        for nombre, importancia in zip(feature_names, importances):
+            nombre_original = nombre.split("__", 1)[-1]
+            variable = next((v for v in variables if nombre_original == v or nombre_original.startswith(f"{v}_")), None)
+            if variable:
+                acumuladas[variable] += float(importancia)
+
+        etiquetas = {
+            "distancia_km": "Distancia (km)",
+            "tiempo_estimado_dias": "Tiempo estimado",
+            "tiempo_preparacion_horas": "Tiempo preparación",
+            "cantidad_productos": "Cantidad de productos",
+            "peso_kg": "Peso del pedido",
+            "region": "Región",
+            "tipo_envio": "Tipo de envío",
+            "prioridad": "Prioridad",
+            "dia_semana": "Día de la semana",
+            "carga_logistica": "Carga logística",
+        }
+        return [
+            {"feature": etiquetas[variable], "importance": round(importancia * 100, 2)}
+            for variable, importancia in sorted(acumuladas.items(), key=lambda item: item[1], reverse=True)
+            if importancia > 0
+        ]
 
 # Instancia Singleton
 ml_service = MLService()

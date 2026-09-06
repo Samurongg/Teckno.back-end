@@ -20,7 +20,12 @@ class RegionBreakdown(BaseModel):
     tardios: int
     tasa_retraso: float
 
+class ShippingBreakdown(BaseModel):
+    tipo: str
+    tasa_retraso: float
+
 class DashboardResponse(BaseModel):
     kpis: KPICards
     evolucion_mensual: List[MonthlyTrend]
     pedidos_por_region: List[RegionBreakdown]
+    pedidos_por_tipo_envio: List[ShippingBreakdown]

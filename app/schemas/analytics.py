@@ -13,3 +13,5 @@ class AnalyticsResponse(BaseModel):
     por_carga_logistica: List[CategoryDelayRate]
     por_prioridad: List[CategoryDelayRate]
     distribucion_distancias: List[Dict[str, Any]]
+    distribucion_tiempo_preparacion: List[Dict[str, Any]]
+    tendencia_mensual: List[Dict[str, Any]]
