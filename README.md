@@ -10,7 +10,7 @@ No es una tienda virtual ni reemplaza el sistema donde se crean los pedidos. Los
 
 - Consulta paginada y filtrable de pedidos históricos.
 - Dashboard con indicadores, distribución geográfica y evolución mensual.
-- Analítica por región, tipo de envío, distancia y tiempo de preparación.
+- Analítica nacional por departamento, zona logística, transporte, distancia y preparación.
 - Predicción de retraso mediante un pipeline de Machine Learning.
 - Registro de cada predicción para auditoría.
 - Metadatos, métricas e importancia de variables del modelo.
@@ -79,10 +79,11 @@ En `/docs`, abre `POST /api/predict`, pulsa **Try it out** e ingresa:
 
 ```json
 {
-  "region": "Sur",
-  "tipo_envio": "Express",
-  "distancia_km": 320,
-  "tiempo_estimado_dias": 2,
+  "departamento_destino": "Arequipa",
+  "modo_transporte": "Terrestre",
+  "tipo_envio": "Estándar",
+  "distancia_km": 1025,
+  "tiempo_estimado_dias": 6,
   "tiempo_preparacion_horas": 8,
   "cantidad_productos": 4,
   "peso_kg": 6.5,
@@ -94,16 +95,29 @@ En `/docs`, abre `POST /api/predict`, pulsa **Try it out** e ingresa:
 
 La respuesta incluye la clasificación, la probabilidad de retraso y el nivel de riesgo.
 
-## Entrenamiento del modelo
+El centro operativo se encuentra en Lima. Cada departamento pertenece a una zona logística y posee un rango aproximado de distancia operativa. La API rechaza combinaciones imposibles, como un envío nacional de larga distancia con servicio `Mismo Día`, y deriva la zona logística a partir del departamento para evitar inconsistencias.
 
-El proyecto incluye un dataset sintético para fines académicos y de demostración. Para regenerarlo y reentrenar:
+## Entrenamiento y validación del modelo
+
+El proyecto incluye un dataset sintético nacional para fines académicos y de demostración. Contiene departamento de destino, zona logística, modo de transporte y distancia aproximada desde Lima. Para regenerarlo, comprobar su calidad y comparar modelos sin modificar el modelo activo:
 
 ```powershell
 python ml/training/generate_dataset.py
+python ml/training/eda_analysis.py
 python ml/training/train_model.py
 ```
 
-Esto actualiza `ml/models/modelo_entrega.joblib` y `ml/models/metadatos_modelo.json`. Para un uso real, sustituye el dataset por pedidos históricos reales y valida el modelo con datos temporales separados.
+El entrenamiento separa los pedidos cronológicamente en 70% para entrenamiento, 15% para validación y 15% para prueba final. La validación selecciona el algoritmo y el umbral; la prueba final se utiliza una sola vez para comprobar su generalización. El resultado completo se guarda en `ml/reports/comparacion_modelos.json`.
+
+Para activar automáticamente el candidato únicamente cuando supere los mínimos de calidad y al modelo vigente:
+
+```powershell
+python ml/training/train_model.py --activate-if-better
+```
+
+Antes de reemplazarlo se crea un respaldo local en `ml/models/backups/`. El modelo activo y sus datos reproducibles quedan en `ml/models/modelo_entrega.joblib` y `ml/models/metadatos_modelo.json`. Después de activar un modelo, reinicia el backend para que vuelva a cargarlo.
+
+Para un uso real, sustituye progresivamente el conjunto sintético por pedidos históricos anonimizados y conserva la misma evaluación temporal.
 
 ## Configuración CORS
 
