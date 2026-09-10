@@ -91,9 +91,11 @@ def _validar_dataset(df: pd.DataFrame) -> pd.Series:
     if departamentos_invalidos:
         errores.append(f"departamentos inválidos={departamentos_invalidos}")
     else:
-        zonas_esperadas = df["departamento_destino"].map(
-            lambda departamento: DEPARTAMENTOS_PERU[departamento].zona_logistica
-        )
+        mapa_zonas = {
+            departamento: configuracion.zona_logistica
+            for departamento, configuracion in DEPARTAMENTOS_PERU.items()
+        }
+        zonas_esperadas = df["departamento_destino"].map(mapa_zonas)
         zonas_inconsistentes = int(
             (zonas_esperadas != df["zona_logistica"]).sum()
         )
@@ -130,11 +132,13 @@ def _validar_dataset(df: pd.DataFrame) -> pd.Series:
 
 
 def _tabla_tasa(df: pd.DataFrame, columna: str) -> pd.DataFrame:
-    tabla = df.groupby(columna, observed=False)["entrega_tardia"].agg(
-        total="count", retrasos="sum", tasa_retraso="mean"
+    tabla = pd.DataFrame(
+        df.groupby(columna, observed=False)["entrega_tardia"].agg(
+            total="count", retrasos="sum", tasa_retraso="mean"
+        )
     )
     tabla["tasa_retraso"] = (tabla["tasa_retraso"] * 100).round(2)
-    return tabla.sort_values("tasa_retraso", ascending=False)
+    return tabla.sort_values(by="tasa_retraso", ascending=False)
 
 
 def ejecutar_eda() -> None:
