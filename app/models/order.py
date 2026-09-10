@@ -6,7 +6,11 @@ class Order(Base):
 
     order_id = Column(String(20), primary_key=True, index=True)
     fecha_pedido = Column(String(10), index=True, nullable=False)
-    region = Column(String(20), nullable=False, index=True)
+    # `region` se conserva como alias de zona_logistica por compatibilidad.
+    region = Column(String(30), nullable=False, index=True)
+    departamento_destino = Column(String(30), nullable=False, index=True)
+    zona_logistica = Column(String(30), nullable=False, index=True)
+    modo_transporte = Column(String(20), nullable=False)
     tipo_envio = Column(String(20), nullable=False)
     distancia_km = Column(Float, nullable=False)
     tiempo_estimado_dias = Column(Integer, nullable=False)

@@ -8,7 +8,9 @@ class CategoryDelayRate(BaseModel):
     tasa_retraso: float
 
 class AnalyticsResponse(BaseModel):
-    por_region: List[CategoryDelayRate]
+    por_departamento: List[CategoryDelayRate]
+    por_zona_logistica: List[CategoryDelayRate]
+    por_modo_transporte: List[CategoryDelayRate]
     por_tipo_envio: List[CategoryDelayRate]
     por_carga_logistica: List[CategoryDelayRate]
     por_prioridad: List[CategoryDelayRate]

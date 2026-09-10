@@ -6,7 +6,9 @@ class OrderSchema(BaseModel):
 
     order_id: str
     fecha_pedido: str
-    region: str
+    departamento_destino: str
+    zona_logistica: str
+    modo_transporte: str
     tipo_envio: str
     distancia_km: float
     tiempo_estimado_dias: int

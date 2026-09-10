@@ -28,3 +28,6 @@ __pycache__/
 *.pyc
 .env
 *.db
+
+# Respaldos locales creados antes de activar un modelo nuevo
+ml/models/backups/

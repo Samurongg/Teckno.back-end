@@ -13,7 +13,10 @@ def predecir_entrega(datos: PredictionInput, db: Session = Depends(get_db)):
 
     # Persistencia de log de auditoría
     log = PredictionLog(
-        region=datos.region,
+        region=resultado["zona_logistica"],
+        departamento_destino=datos.departamento_destino,
+        zona_logistica=resultado["zona_logistica"],
+        modo_transporte=datos.modo_transporte,
         tipo_envio=datos.tipo_envio,
         distancia_km=datos.distancia_km,
         tiempo_estimado_dias=datos.tiempo_estimado_dias,

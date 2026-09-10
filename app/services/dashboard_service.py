@@ -38,25 +38,43 @@ class DashboardService:
             for r in meses_query
         ]
 
-        # Pedidos por región
-        region_query = (
+        departamento_query = (
             db.query(
-                Order.region,
+                Order.departamento_destino.label("departamento"),
                 func.count(Order.order_id).label("total"),
                 func.sum(Order.entrega_tardia).label("tardios")
             )
-            .group_by(Order.region)
+            .group_by(Order.departamento_destino)
             .all()
         )
 
-        regiones = [
+        departamentos = [
             {
-                "region": r.region,
+                "departamento": r.departamento,
                 "total": r.total,
                 "tardios": int(r.tardios or 0),
                 "tasa_retraso": round(((r.tardios or 0) / r.total * 100), 2)
             }
-            for r in region_query
+            for r in departamento_query
+        ]
+
+        zona_query = (
+            db.query(
+                Order.zona_logistica.label("zona"),
+                func.count(Order.order_id).label("total"),
+                func.sum(Order.entrega_tardia).label("tardios"),
+            )
+            .group_by(Order.zona_logistica)
+            .all()
+        )
+        zonas = [
+            {
+                "zona": r.zona,
+                "total": r.total,
+                "tardios": int(r.tardios or 0),
+                "tasa_retraso": round(((r.tardios or 0) / r.total * 100), 2),
+            }
+            for r in zona_query
         ]
 
         tipo_envio_query = (
@@ -86,7 +104,8 @@ class DashboardService:
                 "nivel_riesgo_general": riesgo_gral
             },
             "evolucion_mensual": evolucion,
-            "pedidos_por_region": regiones,
+            "pedidos_por_departamento": departamentos,
+            "pedidos_por_zona": zonas,
             "pedidos_por_tipo_envio": tipos_envio,
         }
 
@@ -113,10 +132,22 @@ class DashboardService:
             ]
 
         # Segmentación por rangos de distancia
+        rangos_distancia = [
+            ("0-200 km", Order.distancia_km <= 200),
+            ("201-500 km", (Order.distancia_km > 200) & (Order.distancia_km <= 500)),
+            ("501-900 km", (Order.distancia_km > 500) & (Order.distancia_km <= 900)),
+            ("901-1300 km", (Order.distancia_km > 900) & (Order.distancia_km <= 1300)),
+            ("> 1300 km", Order.distancia_km > 1300),
+        ]
         distancias = [
-            {"rango": "0-100 km", "total": db.query(Order).filter(Order.distancia_km <= 100).count(), "tardios": db.query(Order).filter(Order.distancia_km <= 100, Order.entrega_tardia == 1).count()},
-            {"rango": "101-250 km", "total": db.query(Order).filter(Order.distancia_km > 100, Order.distancia_km <= 250).count(), "tardios": db.query(Order).filter(Order.distancia_km > 100, Order.distancia_km <= 250, Order.entrega_tardia == 1).count()},
-            {"rango": "251-450 km", "total": db.query(Order).filter(Order.distancia_km > 250).count(), "tardios": db.query(Order).filter(Order.distancia_km > 250, Order.entrega_tardia == 1).count()}
+            {
+                "rango": rango,
+                "total": db.query(Order).filter(filtro).count(),
+                "tardios": db.query(Order)
+                .filter(filtro, Order.entrega_tardia == 1)
+                .count(),
+            }
+            for rango, filtro in rangos_distancia
         ]
 
         rangos_preparacion = [
@@ -154,7 +185,9 @@ class DashboardService:
         ]
 
         return {
-            "por_region": agrupar_por(Order.region),
+            "por_departamento": agrupar_por(Order.departamento_destino),
+            "por_zona_logistica": agrupar_por(Order.zona_logistica),
+            "por_modo_transporte": agrupar_por(Order.modo_transporte),
             "por_tipo_envio": agrupar_por(Order.tipo_envio),
             "por_carga_logistica": agrupar_por(Order.carga_logistica),
             "por_prioridad": agrupar_por(Order.prioridad),

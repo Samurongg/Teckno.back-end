@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import Optional
 import math
@@ -15,6 +16,8 @@ def listar_pedidos(
     page_size: int = Query(10, ge=1, le=10000),
     search: Optional[str] = Query(None),
     region: Optional[str] = Query(None),
+    departamento_destino: Optional[str] = Query(None),
+    zona_logistica: Optional[str] = Query(None),
     tipo_envio: Optional[str] = Query(None),
     entrega_tardia: Optional[int] = Query(None),
     db: Session = Depends(get_db)
@@ -22,9 +25,25 @@ def listar_pedidos(
     query = db.query(Order)
 
     if search:
-        query = query.filter(Order.order_id.ilike(f"%{search}%"))
+        patron = f"%{search}%"
+        query = query.filter(
+            or_(
+                Order.order_id.ilike(patron),
+                Order.departamento_destino.ilike(patron),
+                Order.zona_logistica.ilike(patron),
+            )
+        )
     if region:
-        query = query.filter(Order.region == region)
+        query = query.filter(
+            or_(
+                Order.departamento_destino == region,
+                Order.zona_logistica == region,
+            )
+        )
+    if departamento_destino:
+        query = query.filter(Order.departamento_destino == departamento_destino)
+    if zona_logistica:
+        query = query.filter(Order.zona_logistica == zona_logistica)
     if tipo_envio:
         query = query.filter(Order.tipo_envio == tipo_envio)
     if entrega_tardia is not None:

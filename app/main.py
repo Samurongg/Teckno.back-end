@@ -21,7 +21,7 @@ local_origin_regex = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
 app = FastAPI(
     title="TecnoMarket Analytics API",
     description="API REST de Analítica Logística y Predicción de Entregas Tardías con ML",
-    version="2.4.1",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
@@ -47,5 +47,5 @@ def health_check():
     return {
         "status": "online",
         "service": "TecnoMarket Analytics API",
-        "version": "2.4.1"
+        "version": "3.0.0"
     }
