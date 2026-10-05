@@ -11,6 +11,11 @@ from app.domain.peru_logistics import (
 
 
 class PredictionInput(BaseModel):
+    order_id: str | None = Field(
+        default=None,
+        max_length=20,
+        description="Pedido histórico de referencia; opcional para simulaciones manuales",
+    )
     departamento_destino: str = Field(
         ..., description="Departamento de destino del pedido enviado desde Lima"
     )
@@ -38,6 +43,13 @@ class PredictionInput(BaseModel):
         "Domingo",
     ]
     carga_logistica: Literal["Baja", "Media", "Alta"]
+
+    @field_validator("order_id", mode="before")
+    @classmethod
+    def normalizar_pedido_referencia(cls, valor):
+        if isinstance(valor, str):
+            return valor.strip() or None
+        return valor
 
     @field_validator("departamento_destino")
     @classmethod
@@ -76,6 +88,8 @@ class PredictionInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    prediction_id: int
+    order_id: str | None
     prediccion: int
     resultado: str
     probabilidad_retraso: float

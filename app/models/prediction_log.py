@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database.connection import Base
 
@@ -7,6 +8,16 @@ class PredictionLog(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    order_id = Column(
+        String(20),
+        ForeignKey(
+            "orders.order_id",
+            name="fk_prediction_logs_order_id_orders",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
     region = Column(String(20), nullable=False)
     departamento_destino = Column(String(30), nullable=True)
     zona_logistica = Column(String(30), nullable=True)
@@ -23,3 +34,5 @@ class PredictionLog(Base):
     prediccion = Column(Integer, nullable=False)
     probabilidad = Column(Float, nullable=False)
     nivel_riesgo = Column(String(10), nullable=False)
+
+    order = relationship("Order", back_populates="predictions")

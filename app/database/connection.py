@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Ruta absoluta hacia la base de datos dentro de TecnoMarket-Backend/database/tecnomarket.db
@@ -13,6 +13,16 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
+
+@event.listens_for(engine, "connect")
+def habilitar_claves_foraneas(conexion_dbapi, _registro_conexion):
+    """SQLite requiere activar las claves foráneas en cada conexión."""
+    cursor = conexion_dbapi.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys = ON")
+    finally:
+        cursor.close()
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

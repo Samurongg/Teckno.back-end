@@ -5,6 +5,7 @@ import pandas as pd
 from sqlalchemy import inspect, text
 
 from app.database.connection import Base, SessionLocal, engine
+from app.database.migrations import migrar_vinculo_predicciones
 from app.models.order import Order
 from app.models.prediction_log import PredictionLog
 
@@ -68,6 +69,7 @@ def _hash_dataset() -> str:
 def inicializar_y_poblar_bd() -> None:
     print("Preparando las tablas de SQLite...")
     _migrar_esquema_geografico()
+    migrar_vinculo_predicciones(engine)
 
     if not RUTA_DATASET.exists():
         raise FileNotFoundError(

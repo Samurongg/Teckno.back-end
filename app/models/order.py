@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
 class Order(Base):
@@ -21,3 +22,7 @@ class Order(Base):
     dia_semana = Column(String(15), nullable=False)
     carga_logistica = Column(String(10), nullable=False)
     entrega_tardia = Column(Integer, nullable=False)  # 0 = A tiempo, 1 = Tardía
+
+    predictions = relationship(
+        "PredictionLog", back_populates="order", passive_deletes=True
+    )
