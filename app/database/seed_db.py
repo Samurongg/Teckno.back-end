@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from sqlalchemy import inspect, text
+from sqlalchemy.dialects.sqlite import insert
 
 from app.database.connection import Base, SessionLocal, engine
 from app.database.migrations import migrar_vinculo_predicciones
@@ -99,10 +100,9 @@ def inicializar_y_poblar_bd() -> None:
                 f"El dataset no contiene las columnas geográficas: {sorted(faltantes)}"
             )
 
-        db.query(Order).delete(synchronize_session=False)
         pedidos = [
-            Order(
-                order_id=row["order_id"],
+            dict(
+                order_id=str(row["order_id"]),
                 fecha_pedido=str(row["fecha_pedido"]),
                 region=row["zona_logistica"],
                 departamento_destino=row["departamento_destino"],
@@ -123,7 +123,25 @@ def inicializar_y_poblar_bd() -> None:
             )
             for _, row in df.iterrows()
         ]
-        db.bulk_save_objects(pedidos)
+        ids = [pedido["order_id"] for pedido in pedidos]
+        if len(ids) != len(set(ids)):
+            raise ValueError("El dataset contiene identificadores de pedido duplicados")
+        existentes = {row[0] for row in db.query(Order.order_id).all()}
+        eliminados = list(existentes - set(ids))
+        for inicio in range(0, len(eliminados), 500):
+            db.query(Order).filter(Order.order_id.in_(eliminados[inicio:inicio + 500])).delete(
+                synchronize_session=False
+            )
+        for inicio in range(0, len(pedidos), 500):
+            sentencia = insert(Order).values(pedidos[inicio:inicio + 500])
+            actualizaciones = {
+                columna.name: getattr(sentencia.excluded, columna.name)
+                for columna in Order.__table__.columns
+                if columna.name != "order_id"
+            }
+            db.execute(sentencia.on_conflict_do_update(
+                index_elements=["order_id"], set_=actualizaciones
+            ))
         db.execute(
             text(
                 "INSERT INTO dataset_state (id, dataset_sha256) VALUES (1, :hash) "

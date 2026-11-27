@@ -3,9 +3,11 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Callable, Literal, TypedDict
 
 import joblib
 import numpy as np
@@ -60,6 +62,33 @@ COLUMNAS_CATEGORICAS = [
 COLUMNAS_MODELO = COLUMNAS_NUMERICAS + COLUMNAS_CATEGORICAS
 
 
+class Metricas(TypedDict):
+    threshold: float
+    accuracy: float
+    balanced_accuracy: float
+    precision: float
+    recall: float
+    f1_score: float
+    f2_score: float
+    roc_auc: float
+    average_precision: float
+    brier_score: float
+    predicted_positive_rate: float
+    confusion_matrix: list[list[int]]
+
+
+class MetricasSeleccion(Metricas):
+    selection_score: float
+
+
+Clasificador = (
+    LogisticRegression
+    | DecisionTreeClassifier
+    | RandomForestClassifier
+    | ExtraTreesClassifier
+)
+
+
 def _crear_preprocesador() -> ColumnTransformer:
     return ColumnTransformer(
         transformers=[
@@ -73,7 +102,7 @@ def _crear_preprocesador() -> ColumnTransformer:
     )
 
 
-def _crear_candidatos() -> dict[str, object]:
+def _crear_candidatos() -> dict[str, Clasificador]:
     return {
         "Logistic Regression": LogisticRegression(
             max_iter=1500,
@@ -106,7 +135,7 @@ def _crear_candidatos() -> dict[str, object]:
     }
 
 
-def _probabilidad_clase_positiva(modelo: object, datos: pd.DataFrame) -> np.ndarray:
+def _probabilidad_clase_positiva(modelo: Pipeline, datos: pd.DataFrame) -> np.ndarray:
     probabilidades = modelo.predict_proba(datos)
     clases = list(modelo.classes_)
     if 1 not in clases:
@@ -118,7 +147,7 @@ def _calcular_metricas(
     y_real: pd.Series,
     probabilidades: np.ndarray,
     umbral: float,
-) -> dict[str, object]:
+) -> Metricas:
     predicciones = (probabilidades >= umbral).astype(int)
     return {
         "threshold": round(float(umbral), 4),
@@ -153,9 +182,9 @@ def _calcular_metricas(
 def _seleccionar_umbral(
     y_validacion: pd.Series,
     probabilidades: np.ndarray,
-) -> tuple[float, dict[str, object]]:
+) -> tuple[float, Metricas]:
     """Equilibra precisión y detección manteniendo un recall mínimo de 50 %."""
-    resultados = []
+    resultados: list[Metricas] = []
     for umbral in np.linspace(0.10, 0.80, 71):
         metricas = _calcular_metricas(y_validacion, probabilidades, umbral)
         resultados.append(metricas)
@@ -211,14 +240,14 @@ def _datos_modelo(
     return particion[COLUMNAS_MODELO], particion["entrega_tardia"]
 
 
-def _leer_json(ruta: Path) -> dict[str, object]:
+def _leer_json(ruta: Path) -> dict[str, Any]:
     if not ruta.exists():
         return {}
     with ruta.open("r", encoding="utf-8") as archivo:
         return json.load(archivo)
 
 
-def _guardar_json_atomico(datos: dict[str, object], ruta: Path) -> None:
+def _guardar_json_atomico(datos: dict[str, Any], ruta: Path) -> None:
     ruta.parent.mkdir(parents=True, exist_ok=True)
     descriptor, nombre_temporal = tempfile.mkstemp(
         prefix=f".{ruta.stem}_", suffix=".tmp", dir=ruta.parent
@@ -236,7 +265,7 @@ def _guardar_json_atomico(datos: dict[str, object], ruta: Path) -> None:
 
 def _activar_modelo(
     pipeline: Pipeline,
-    metadatos: dict[str, object],
+    metadatos: dict[str, Any],
 ) -> list[str]:
     DIRECTORIO_MODELOS.mkdir(parents=True, exist_ok=True)
     DIRECTORIO_RESPALDOS.mkdir(parents=True, exist_ok=True)
@@ -276,7 +305,15 @@ def _activar_modelo(
     return rutas_respaldo
 
 
-def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
+def entrenar_y_evaluar(
+    activar_si_mejora: bool = False,
+    progreso: Callable[[str, int], None] | None = None,
+) -> dict[str, Any]:
+    def informar(mensaje: str, porcentaje: int) -> None:
+        if progreso is not None:
+            progreso(mensaje, porcentaje)
+
+    informar("Validando datos y preparando particiones temporales", 5)
     if not RUTA_DATASET.exists():
         raise FileNotFoundError(f"Archivo no encontrado: {RUTA_DATASET}")
 
@@ -311,9 +348,10 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
             f"retrasos={particion['entrega_tardia'].mean():.2%}"
         )
 
-    comparacion_validacion = {}
-    pipelines = {}
+    comparacion_validacion: dict[str, MetricasSeleccion] = {}
+    pipelines: dict[str, Pipeline] = {}
     for nombre, clasificador in _crear_candidatos().items():
+        informar(f"Entrenando {nombre}", 10 + len(pipelines) * 18)
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", _crear_preprocesador()),
@@ -323,12 +361,15 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
         pipeline.fit(X_train, y_train)
         probabilidades_val = _probabilidad_clase_positiva(pipeline, X_val)
         umbral, metricas_val = _seleccionar_umbral(y_val, probabilidades_val)
-        metricas_val["selection_score"] = round(
-            0.55 * metricas_val["roc_auc"] + 0.45 * metricas_val["f1_score"],
-            4,
-        )
-        comparacion_validacion[nombre] = metricas_val
+        comparacion_validacion[nombre] = {
+            **metricas_val,
+            "selection_score": round(
+                0.55 * metricas_val["roc_auc"] + 0.45 * metricas_val["f1_score"],
+                4,
+            ),
+        }
         pipelines[nombre] = pipeline
+        informar(f"{nombre} evaluado: AUC={metricas_val['roc_auc']:.4f}, F1={metricas_val['f1_score']:.4f}", 28 + (len(pipelines) - 1) * 18)
 
         print(
             f"\n{nombre}: AUC={metricas_val['roc_auc']:.4f} | "
@@ -338,6 +379,7 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
             f"Umbral={umbral:.2f}"
         )
 
+    informar("Seleccionando candidato y comparando con el modelo activo", 85)
     mejor_nombre = max(
         comparacion_validacion,
         key=lambda nombre: comparacion_validacion[nombre]["selection_score"],
@@ -367,7 +409,7 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
         except Exception as exc:
             error_modelo_activo = str(exc)
 
-    minimos = {
+    minimos: dict[Literal["roc_auc", "recall", "precision", "f1_score", "accuracy"], float] = {
         "roc_auc": 0.70,
         "recall": 0.55,
         "precision": 0.35,
@@ -484,7 +526,7 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
         },
         "dataset_sha256": hash_dataset_actual,
         "runtime_versions": {
-            "python": os.sys.version.split()[0],
+            "python": sys.version.split()[0],
             "pandas": pd.__version__,
             "scikit_learn": sklearn.__version__,
         },
@@ -500,6 +542,7 @@ def entrenar_y_evaluar(activar_si_mejora: bool = False) -> dict[str, object]:
         "backup_paths": respaldos,
     }
     _guardar_json_atomico(reporte, RUTA_REPORTE)
+    informar("Evaluación terminada e informe guardado", 100)
 
     print("\n" + "=" * 72)
     print(f"MODELO SELECCIONADO: {mejor_nombre}")

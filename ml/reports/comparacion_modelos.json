@@ -1,7 +1,7 @@
 {
     "model_name": "Logistic Regression",
     "model_version": "v3.0.2",
-    "trained_at": "2026-09-08T21:01:52-05:00",
+    "trained_at": "2026-11-23T19:38:36-05:00",
     "total_samples": 5000,
     "train_samples": 3500,
     "validation_samples": 750,
@@ -151,9 +151,31 @@
     },
     "active_model_comparison": {
         "previous_model_name": "Logistic Regression",
-        "previous_model_version": "v3.0.1",
-        "test_metrics": null,
-        "evaluation_error": "columns are missing: {'departamento_destino'}"
+        "previous_model_version": "v3.0.2",
+        "test_metrics": {
+            "threshold": 0.27,
+            "accuracy": 0.7293,
+            "balanced_accuracy": 0.6813,
+            "precision": 0.4511,
+            "recall": 0.5889,
+            "f1_score": 0.5108,
+            "f2_score": 0.555,
+            "roc_auc": 0.7569,
+            "average_precision": 0.5132,
+            "brier_score": 0.1534,
+            "predicted_positive_rate": 0.3133,
+            "confusion_matrix": [
+                [
+                    441,
+                    129
+                ],
+                [
+                    74,
+                    106
+                ]
+            ]
+        },
+        "evaluation_error": null
     },
     "historical_baseline": {
         "previous_model_name": "Random Forest",
@@ -213,13 +235,13 @@
         "requires_active_f1_improvement": 0.05,
         "allows_brier_improvement": 0.03,
         "active_dataset_mismatch": false,
-        "classification_improved": true,
-        "calibration_improved": true,
-        "simpler_non_inferior_model": true,
+        "classification_improved": false,
+        "calibration_improved": false,
+        "simpler_non_inferior_model": false,
         "meets_minimum_metrics": true,
-        "beats_active_model": true,
-        "approved": true,
-        "activated": true
+        "beats_active_model": false,
+        "approved": false,
+        "activated": false
     },
     "dataset_sha256": "c8bcf975436c361b41a6dfd28f4d06fff425ea4331fb205fe25a32b5d47eef61",
     "runtime_versions": {
@@ -227,9 +249,6 @@
         "pandas": "3.0.5",
         "scikit_learn": "1.9.0"
     },
-    "activation_requested": true,
-    "backup_paths": [
-        "ml/models/backups/modelo_entrega_20260908_210152.joblib",
-        "ml/models/backups/metadatos_modelo_20260908_210152.json"
-    ]
+    "activation_requested": false,
+    "backup_paths": []
 }
